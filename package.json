@@ -1,0 +1,17 @@
+{
+  "name": "quiz-analyzer",
+  "version": "1.0.0",
+  "description": "Minimal proxy that analyzes an uploaded one-pager via the Anthropic API and returns structured answers for the grants matching questionnaire",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "dependencies": {
+    "express": "^4.19.2",
+    "cors": "^2.8.5",
+    "multer": "^1.4.5-lts.1"
+  }
+}

@@ -1,0 +1,14 @@
+services:
+  - type: web
+    name: quiz-analyzer
+    env: node
+    plan: starter
+    buildCommand: npm install
+    startCommand: npm start
+    envVars:
+      - key: ANTHROPIC_API_KEY
+        sync: false
+      - key: ANTHROPIC_MODEL
+        value: claude-sonnet-5
+      - key: ALLOWED_ORIGINS
+        value: https://quiz.inno-tech.io
