@@ -72,6 +72,15 @@ const SCHEMA_INSTRUCTIONS = `
 3. החזר אך ורק אובייקט JSON תקין אחד, בדיוק בשמות השדות שלמעלה, בלי טקסט נוסף, בלי הסברים, בלי markdown fences.
 `.trim();
 
+// מחלץ את אובייקט ה-JSON מהתשובה גם אם המודל הוסיף טקסט לפניו/אחריו או עטף ב-```
+function extractJson(text) {
+  const cleaned = text.replace(/```(?:json)?/gi, '').trim();
+  const start = cleaned.indexOf('{');
+  const end = cleaned.lastIndexOf('}');
+  if (start === -1 || end <= start) throw new Error('no JSON object in model output');
+  return JSON.parse(cleaned.slice(start, end + 1));
+}
+
 app.post('/api/analyze', upload.single('file'), async (req, res) => {
   if (!ANTHROPIC_API_KEY) {
     return res.status(500).json({ error: 'השרת לא הוגדר כראוי (חסר מפתח API)' });
@@ -103,7 +112,7 @@ app.post('/api/analyze', upload.single('file'), async (req, res) => {
       },
       body: JSON.stringify({
         model: ANTHROPIC_MODEL,
-        max_tokens: 1200,
+        max_tokens: 4000,
         system: SCHEMA_INSTRUCTIONS,
         messages: [{
           role: 'user',
@@ -128,14 +137,16 @@ app.post('/api/analyze', upload.single('file'), async (req, res) => {
       .join('')
       .trim();
 
-    // הגנה למקרה שהמודל בכל זאת עוטף ב-markdown fences
-    const cleaned = rawText.replace(/^```json\s*/i, '').replace(/^```\s*/i, '').replace(/```\s*$/i, '');
+    // עברית צורכת הרבה טוקנים — אם התשובה נחתכה, ה-JSON לא יהיה שלם
+    if (data.stop_reason === 'max_tokens') {
+      console.error('Model output truncated (max_tokens). Raw:', rawText);
+    }
 
     let extracted;
     try {
-      extracted = JSON.parse(cleaned);
+      extracted = extractJson(rawText);
     } catch (e) {
-      console.error('Failed to parse model output as JSON:', rawText);
+      console.error('Failed to parse model output as JSON. stop_reason:', data.stop_reason, '| raw:', rawText);
       return res.status(502).json({ error: 'לא הצלחנו לפרש את תוצאת הניתוח — נסה שוב' });
     }
 
